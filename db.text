@@ -1,0 +1,64 @@
+const express = require('express');
+const bodyParser = require('body-parser');
+const fs = require('fs');
+
+const app = express();
+app.use(bodyParser.json());
+
+const dbPath = './db.json';
+
+// Read all books
+app.get('/books', (req, res) => {
+  const db = JSON.parse(fs.readFileSync(dbPath));
+  res.json(db.books);
+});
+
+// Read one book
+app.get('/books/:id', (req, res) => {
+  const db = JSON.parse(fs.readFileSync(dbPath));
+  const book = db.books.find(b => b.id === parseInt(req.params.id));
+  if (!book) return res.status(404).send('Book not found');
+  res.json(book);
+});
+
+// Create a new book
+app.post('/books', (req, res) => {
+  const db = JSON.parse(fs.readFileSync(dbPath));
+  const book = {
+    id: db.books.length + 1,
+    title: req.body.title,
+    author: req.body.author,
+    published: req.body.published
+  };
+  db.books.push(book);
+  fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+  res.json(book);
+});
+
+// Update a book
+app.put('/books/:id', (req, res) => {
+  const db = JSON.parse(fs.readFileSync(dbPath));
+  const book = db.books.find(b => b.id === parseInt(req.params.id));
+  if (!book) return res.status(404).send('Book not found');
+  book.title = req.body.title || book.title;
+  book.author = req.body.author || book.author;
+  book.published = req.body.published || book.published;
+  fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+  res.json(book);
+});
+
+// Delete a book
+app.delete('/books/:id', (req, res) => {
+  const db = JSON.parse(fs.readFileSync(dbPath));
+  const index = db.books.findIndex(b => b.id === parseInt(req.params.id));
+  if (index === -1) return res.status(404).send('Book not found');
+  db.books.splice(index, 1);
+  fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+  res.sendStatus(204);
+});
+
+// Start the server
+const port = 3000;
+app.listen(port, () => {
+  console.log(`Server is listening on http://localhost:${port}`);
+});
